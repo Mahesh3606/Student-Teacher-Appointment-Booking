@@ -95,7 +95,7 @@ student-teacher-booking/
 
 ![3](https://github.com/user-attachments/assets/12074a13-3647-4961-a475-d25ff59dd47f)
 
-![4](ttps://github.com/user-attachments/assets/576d8a6f-ea6a-497a-8cf7-ef8a121e7d61)
+![4](https://github.com/user-attachments/assets/576d8a6f-ea6a-497a-8cf7-ef8a121e7d61)
 
 
 
