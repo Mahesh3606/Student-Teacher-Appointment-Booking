@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      height: 100vh;
+      color: white;
+    }
+    /* h1, h2 {
+      color: #333;
+    } */
+    .card {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-size: 18px;
+      color: white;
+
+    }
+    .card:hover{
+      box-shadow: 2px 2px  20px  #764ba2 ;
+    }
+   
+    button {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2)  ;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover{
+      box-shadow: 2px 5px 20px #764ba2;
+    }
+    @media (max-width: 768px) {
+  body {
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  .card {
+    padding: 10px;
+    font-size: 16px;
+    margin: 8px 0;
+  }
+
+  button {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .card {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    display: block;
+    margin-top: 10px;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+
+  <h2>Registered Teachers</h2>
+  <div id="teacherList">Loading...</div>
+
+  <h2>Pending Student Approvals</h2>
+  <div id="studentApprovals">Loading...</div>
+
+  <!-- Firebase v9 SDK via modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      doc,
+      updateDoc
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEZ8cYhWh0WRc5TSZxoZhkPzZFzH6aEow",
+      authDomain: "student-teacher-booking-ab248.firebaseapp.com",
+      projectId: "student-teacher-booking-ab248",
+      storageBucket: "student-teacher-booking-ab248.appspot.com",
+      messagingSenderId: "232151809677",
+      appId: "1:232151809677:web:0268adb70fc41ffaabacc4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        loadTeachers();
+        loadPendingStudents();
+      } else {
+        window.location.href = "../login.html";
+      }
+    });
+
+    async function loadTeachers() {
+      const q = query(collection(db, 'users'), where('role', '==', 'teacher'));
+      const snapshot = await getDocs(q);
+      let html = '';
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        html += `<div class="card">
+          <strong>${data.name}</strong><br>Email: ${data.email}
+        </div>`;
+      });
+      document.getElementById('teacherList').innerHTML = html || "<p>No teachers found.</p>";
+    }
+
+    async function loadPendingStudents() {
+      const q = query(collection(db, 'users'), where('role', '==', 'student'), where('approved', '==', false));
+      const snapshot = await getDocs(q);
+      let html = '';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        html += `<div class="card">
+          <strong>${data.name}</strong><br>Email: ${data.email}
+          <br><br><button onclick="approveStudent('${docSnap.id}')">Approve</button>
+        </div>`;
+      });
+      document.getElementById('studentApprovals').innerHTML = html || "<p>No pending students.</p>";
+    }
+
+    window.approveStudent = async (studentId) => {
+      const userRef = doc(db, 'users', studentId);
+      await updateDoc(userRef, { approved: true });
+      alert('Student approved successfully!');
+      loadPendingStudents();
+    };
+  </script>
+</body>
+</html>

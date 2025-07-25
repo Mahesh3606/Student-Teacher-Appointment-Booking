@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teacher Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      height: 100vh;
+      color: white;
+    }
+    .appointment-card {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-size: 18px;
+      color: white;
+
+    }
+    .appointment-card:hover{
+      box-shadow: 2px 2px  20px  #764ba2 ;
+    }
+    .status {
+      font-weight: bold;
+    }
+    button {
+      padding: 6px 10px;
+      margin-right: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .accept {
+      background-color: #28a745;
+      color: white;
+    }
+    .reject {
+      background-color: #dc3545;
+      color: white;
+    }
+  </style> -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      height: 100vh;
+      color: white;
+    }
+  
+    .appointment-card {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-size: 18px;
+      color: white;
+      transition: 0.3s ease;
+    }
+  
+    .appointment-card:hover {
+      box-shadow: 2px 2px 20px #764ba2;
+    }
+  
+    .status {
+      font-weight: bold;
+    }
+  
+    button {
+      padding: 6px 10px;
+      margin-right: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+  
+    .accept {
+      background-color: #28a745;
+      color: white;
+    }
+  
+    .reject {
+      background-color: #dc3545;
+      color: white;
+    }
+  
+    button:hover {
+      opacity: 0.9;
+      transform: scale(1.03);
+    }
+  
+    /* ✅ Media Queries for Responsiveness */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+  
+      .appointment-card {
+        font-size: 16px;
+        padding: 10px;
+      }
+  
+      button {
+        font-size: 15px;
+        padding: 8px 12px;
+      }
+    }
+  
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+  
+      .appointment-card {
+        font-size: 15px;
+        padding: 8px;
+      }
+  
+      button {
+        width: 100%;
+        margin: 8px 0;
+        padding: 10px;
+        font-size: 14px;
+      }
+    }
+  </style>
+  
+</head>
+<body>
+  <h1>Teacher Dashboard</h1>
+  <div id="appointments">Loading appointments...</div>
+
+  <!-- Firebase v9 SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      query,
+      where,
+      getDoc,
+      updateDoc
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEZ8cYhWh0WRc5TSZxoZhkPzZFzH6aEow",
+      authDomain: "student-teacher-booking-ab248.firebaseapp.com",
+      projectId: "student-teacher-booking-ab248",
+      storageBucket: "student-teacher-booking-ab248.appspot.com",
+      messagingSenderId: "232151809677",
+      appId: "1:232151809677:web:0268adb70fc41ffaabacc4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "../login.html";
+        return;
+      }
+      const teacherId = user.uid;
+      await loadAppointments(teacherId);
+    });
+
+    async function loadAppointments(teacherId) {
+      const q = query(collection(db, 'appointments'), where('teacher', '==', teacherId));
+      const snapshot = await getDocs(q);
+
+      let html = '';
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const studentDoc = await getDoc(doc(db, 'users', data.student));
+        const student = studentDoc.exists() ? studentDoc.data() : { name: "Unknown", email: "N/A" };
+
+        html += `
+          <div class="appointment-card">
+            <p><strong>Student:</strong> ${student.name} (${student.email})</p>
+            <p><strong>Status:</strong> <span class="status">${data.status}</span></p>
+            <p><strong>Time:</strong> ${data.time?.seconds ? new Date(data.time.seconds * 1000).toLocaleString() : "N/A"}</p>
+            ${data.status === 'Pending' ? `
+              <button class="accept" onclick="updateStatus('${docSnap.id}', 'Accepted')">Accept</button>
+              <button class="reject" onclick="updateStatus('${docSnap.id}', 'Rejected')">Reject</button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      document.getElementById('appointments').innerHTML = html || '<p>No appointments found.</p>';
+    }
+
+    window.updateStatus = async (appointmentId, newStatus) => {
+      const apptRef = doc(db, 'appointments', appointmentId);
+      await updateDoc(apptRef, { status: newStatus });
+      alert(`Appointment ${newStatus}`);
+      location.reload();
+    };
+  </script>
+</body>
+</html>

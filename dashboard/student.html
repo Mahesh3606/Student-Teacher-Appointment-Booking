@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard</title>
+  <!-- <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      height: 100vh;
+      color: white;
+    }
+    .teacher-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-size: 18px;
+      color: white;
+
+    }
+    .teacher-card:hover{
+      box-shadow: 2px 2px  20px  #764ba2 ;
+    }
+    button {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2)  ;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover{
+      box-shadow: 2px 5px 20px #764ba2;
+    }
+  </style> -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      height: 100vh;
+      color: white;
+    }
+  
+    .teacher-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-size: 18px;
+      color: white;
+      transition: all 0.3s ease;
+    }
+  
+    .teacher-card:hover {
+      box-shadow: 2px 2px 20px #764ba2;
+    }
+  
+    button {
+      padding: 6px 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+  
+    button:hover {
+      box-shadow: 2px 5px 20px #764ba2;
+      transform: scale(1.03);
+    }
+  
+    /* ✅ Media Queries for Responsive Design */
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+  
+      .teacher-card {
+        font-size: 16px;
+        padding: 8px;
+      }
+  
+      button {
+        padding: 8px 14px;
+        font-size: 15px;
+      }
+    }
+  
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+        font-size: 14px;
+      }
+  
+      .teacher-card {
+        font-size: 15px;
+        padding: 8px;
+        border-radius: 8px;
+      }
+  
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+    }
+  </style>
+  
+</head>
+<body>
+  <h1>Student Dashboard</h1>
+  <p>Available Teachers:</p>
+  <div id="teacherList">Loading...</div>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <script>
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEZ8cYhWh0WRc5TSZxoZhkPzZFzH6aEow",
+      authDomain: "student-teacher-booking-ab248.firebaseapp.com",
+      projectId: "student-teacher-booking-ab248",
+      storageBucket: "student-teacher-booking-ab248.appspot.com",
+      messagingSenderId: "232151809677",
+      appId: "1:232151809677:web:0268adb70fc41ffaabacc4"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Load Teachers
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        alert("Please login first.");
+        window.location.href = "../login.html";
+        return;
+      }
+
+      db.collection('users').where('role', '==', 'teacher').get().then(snapshot => {
+        let html = '';
+        if (snapshot.empty) {
+          html = '<p>No teachers available.</p>';
+        } else {
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            html += `
+              <div class="teacher-card">
+                <h4>${data.name}</h4>
+                <p>Email: ${data.email}</p>
+                <button onclick="bookAppointment('${doc.id}', this)">Book Appointment</button>
+              </div>`;
+          });
+        }
+        document.getElementById('teacherList').innerHTML = html;
+      }).catch(err => {
+        document.getElementById('teacherList').innerHTML = `<p>Error: ${err.message}</p>`;
+      });
+    });
+
+    // Book Appointment
+    function bookAppointment(teacherId, btn) {
+      btn.disabled = true;
+      const studentId = firebase.auth().currentUser.uid;
+      db.collection('appointments').add({
+        student: studentId,
+        teacher: teacherId,
+        status: 'Pending',
+        time: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        alert('Appointment Requested');
+      }).catch(err => {
+        alert("Error booking appointment: " + err.message);
+        btn.disabled = false;
+      });
+    }
+  </script>
+</body>
+</html>
