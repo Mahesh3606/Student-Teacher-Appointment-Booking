@@ -1,6 +1,3 @@
-// auth.js — for Firebase v8
-
-// Firebase config
 var firebaseConfig = {
   apiKey: "AIzaSyCEZ8cYhWh0WRc5TSZxoZhkPzZFzH6aEow",
   authDomain: "student-teacher-booking-ab248.firebaseapp.com",
@@ -16,7 +13,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Register
+// Register — No approval logic
 document.getElementById('registerForm')?.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = document.getElementById('name').value;
@@ -29,8 +26,7 @@ document.getElementById('registerForm')?.addEventListener('submit', (e) => {
       return db.collection('users').doc(cred.user.uid).set({
         name,
         email,
-        role,
-        approved: role === 'teacher'
+        role
       });
     })
     .then(() => {
@@ -52,17 +48,23 @@ document.getElementById('loginForm')?.addEventListener('submit', (e) => {
     })
     .then(doc => {
       const user = doc.data();
-      if (user.role === 'admin') location.href = 'dashboard/admin.html';
-      else if (user.role === 'teacher') location.href = 'dashboard/teacher.html';
-      else if (user.role === 'student') {
-        if (user.approved) {
-          location.href = 'dashboard/student.html';
-        } else {
-          alert('Your account is pending admin approval.');
-          auth.signOut();
-        }
+      if (!user) {
+        alert("User profile not found in Firestore.");
+        return auth.signOut();
+      }
+
+      if (user.role === 'admin') {
+        location.href = 'dashboard/admin.html';
+      } else if (user.role === 'teacher') {
+        location.href = 'dashboard/teacher.html';
+      } else if (user.role === 'student') {
+        location.href = 'dashboard/student.html';
+      } else {
+        alert("Invalid user role.");
+        auth.signOut();
       }
     })
     .catch(err => alert(err.message));
 });
+
 
